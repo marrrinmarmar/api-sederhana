@@ -8,7 +8,7 @@ class PortalKependudukan:
         self.user = user
         self.password = password
         # Sesuaikan dengan path XAMPP Anda
-        self.endpoint = "http://localhost/api-mapelsiryoni/quis/portalkependudukan.php"
+        self.endpoint = "http://172.16.8.1/api-mapelsiryoni/quis/portalkependudukan.php"
         self.connect()
 
     def connect(self):

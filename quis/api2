@@ -1,0 +1,110 @@
+<?php
+class DatabaseAPI {
+    private $conn;
+    private $data = [];
+
+    // Database connection
+    public function DbConnect($host, $user, $pass, $dbname) {
+        $this->conn = mysqli_connect($host, $user, $pass, $dbname);
+        if (!$this->conn) {
+            return false;
+        }
+        return true;
+    }
+
+    // Function to read data from database
+    public function ReadDb($SQL) {
+        if (!$this->conn) {
+            return json_encode(['error' => 'Database not connected']);
+        }
+        
+        $ex = mysqli_query($this->conn, $SQL);
+        if (!$ex) {
+            return json_encode(['error' => mysqli_error($this->conn)]);
+        }
+
+        $data = [];
+        while ($row = mysqli_fetch_assoc($ex)) {
+            array_push($data, $row);
+        }
+        return json_encode($data);
+    }
+
+    // Function to load data from JSON file
+    public function LoadJsonData($filename) {
+        if (file_exists($filename)) {
+            $jsonData = file_get_contents($filename);
+            return json_decode($jsonData, true);
+        }
+        return null;
+    }
+
+    // Function to save data to JSON file
+    public function SaveJsonData($filename, $data) {
+        $jsonData = json_encode($data, JSON_PRETTY_PRINT);
+        return file_put_contents($filename, $jsonData);
+    }
+
+    // Function to call Python script with pandas
+    public function CallPythonScript($scriptPath, $data) {
+        $dataJson = json_encode($data);
+        $command = "python " . $scriptPath . " '" . $dataJson . "'";
+        return shell_exec($command);
+    }
+}
+
+// Handle API requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $api = new DatabaseAPI();
+    
+    // Handle database connection
+    if (isset($_POST['connect'])) {
+        $host = $_POST['connect'][0];
+        $user = $_POST['connect'][1];
+        $pass = $_POST['connect'][2];
+        $dbname = $_POST['connect'][3];
+        
+        if ($api->DbConnect($host, $user, $pass, $dbname)) {
+            echo json_encode(['status' => 'success', 'message' => 'Connected to database']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Connection failed']);
+        }
+    }
+    
+    // Handle data query
+    if (isset($_POST['data'])) {
+        $id = $_POST['data'][0];
+        $nama = $_POST['data'][1];
+        $alamat = $_POST['data'][2];
+        
+        $sql = "SELECT * FROM siswa WHERE id = $id";
+        echo $api->ReadDb($sql);
+    }
+    
+    // Handle JSON data operations
+    if (isset($_POST['json_operation'])) {
+        $operation = $_POST['json_operation'];
+        $filename = $_POST['filename'];
+        
+        switch ($operation) {
+            case 'load':
+                $data = $api->LoadJsonData($filename);
+                echo json_encode($data);
+                break;
+            case 'save':
+                $data = $_POST['data'];
+                $result = $api->SaveJsonData($filename, $data);
+                echo json_encode(['status' => $result ? 'success' : 'error']);
+                break;
+        }
+    }
+    
+    // Handle Python script execution
+    if (isset($_POST['python_script'])) {
+        $scriptPath = $_POST['python_script'];
+        $data = $_POST['data'];
+        $result = $api->CallPythonScript($scriptPath, $data);
+        echo $result;
+    }
+}
+?>

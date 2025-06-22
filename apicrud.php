@@ -33,3 +33,4 @@ if(isset($_POST['Test'])){
     echo mysqli_connect($host,$user,$pass);
 }
 ?>
+
